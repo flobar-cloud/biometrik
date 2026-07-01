@@ -390,7 +390,7 @@ async function loadData() {
   try {
     const [laporan,members,valid]=await Promise.all([fetchSheet('Laporan'),fetchSheet('Members'),fetchSheet('Valid')]);
     allLaporan=laporan; allMembers=members.filter(m=>m.whatsapp_id);
-    validNumbers=new Set(valid.map(r=>String(r.no_biometrik||r[Object.keys(r)[0]]||'').trim()).filter(Boolean));
+    validNumbers=new Set(valid.map(r=>String(r.no_biometrik||r[Object.keys(r)[0]]||'').replace(/^'+/,'').trim()).filter(Boolean));
     document.getElementById('loading-state').style.display='none';
     document.getElementById('dashboard-content').style.display='block';
     renderDashboard();
@@ -415,16 +415,28 @@ function getStatus(row) {
 async function runValidation() {
   const pendingRows = allLaporan.filter(l => {
     const s = l.status_valid || '';
-    return s !== 'valid' && s !== 'not valid'; // hanya yang pending
+    return s !== 'valid' && s !== 'not valid'; // kosong juga dianggap pending
   });
 
+  if(validNumbers.size === 0) {
+    showToast('⚠️ Sheet Valid masih kosong atau belum dimuat. Klik Perbarui dulu.', 4000);
+    return;
+  }
+
+  // Debug: cek berapa nomor yang match
   const toUpdate = pendingRows.filter(l => {
-    const no = String(l.no_biometrik||'').trim();
-    return no && validNumbers.has(no); // yang ternyata valid
+    const no = String(l.no_biometrik||'').replace(/^'+/, '').trim(); // strip prefix apostrof
+    return no && validNumbers.has(no);
   });
+
+  console.log('Pending rows:', pendingRows.length);
+  console.log('Valid numbers loaded:', validNumbers.size);
+  console.log('Sample pending no:', pendingRows.slice(0,3).map(l=>l.no_biometrik));
+  console.log('Sample valid nos:', [...validNumbers].slice(0,3));
+  console.log('To update:', toUpdate.length);
 
   if(toUpdate.length === 0) {
-    showToast('Tidak ada pending yang bisa divalidasi sekarang');
+    showToast(`⚠️ ${pendingRows.length} pending, ${validNumbers.size} nomor valid dimuat, tapi tidak ada yang match. Cek format nomor di sheet Valid.`, 5000);
     return;
   }
 
