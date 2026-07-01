@@ -273,8 +273,8 @@
 // ============================================================
 // KONFIGURASI ADMIN
 // ============================================================
-const SHEET_ID    = '1Zi7Ze8Zdy6eJh4xc3KZgb-ff8vhHbbfVIn1j1TIFkgQ';
-const OAUTH_CLIENT_ID = '165880002356-uaath094db85s5nvjl41t4e0lj2hiahb.apps.googleusercontent.com';
+const SHEET_ID    = 'GANTI_SPREADSHEET_ID';
+const OAUTH_CLIENT_ID = 'GANTI_OAUTH_CLIENT_ID.apps.googleusercontent.com';
 const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
 // ============================================================
 
@@ -352,7 +352,20 @@ function updateRangeInfo() {
   const fmt=s=>s?new Date(s+'T00:00:00').toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}):'-';
   document.getElementById('range-info').textContent = dateFrom==='2020-01-01'?'Semua data':`${fmt(dateFrom)} — ${fmt(dateTo)}`;
 }
-function inRange(row) { const t=row.tanggal||''; return t>=dateFrom && t<=dateTo; }
+function parseRowDate(row) {
+  // Coba ambil dari kolom tanggal dulu, lalu parse laporan_at
+  if (row.tanggal && row.tanggal.match(/^\d{4}-\d{2}-\d{2}$/)) return row.tanggal;
+  const at = row.laporan_at || row.waktu || '';
+  if (!at) return '';
+  // Format: "29/06/2026, 14.17.00"
+  const m = at.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+  // Format: "2026-06-29"
+  const m2 = at.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (m2) return m2[1];
+  return '';
+}
+function inRange(row) { const t=parseRowDate(row); if(!t) return false; return t>=dateFrom && t<=dateTo; }
 
 // ============ FETCH ============
 async function fetchSheet(name) {
@@ -474,7 +487,7 @@ function showToast(msg, dur=3000) {
 function renderDashboard() {
   filteredLaporan=allLaporan.filter(inRange);
   const today=new Date().toISOString().split('T')[0];
-  const todayLap=allLaporan.filter(l=>(l.tanggal||'')===today);
+  const todayLap=allLaporan.filter(l=>parseRowDate(l)===today);
   let tv=0,tp=0;
   filteredLaporan.forEach(l=>{ const s=getStatus(l); if(s==='valid') tv++; else if(s==='pending') tp++; });
   document.getElementById('kpi-total').textContent=filteredLaporan.length;
