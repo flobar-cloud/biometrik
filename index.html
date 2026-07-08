@@ -166,6 +166,7 @@
   .badge-valid { background: var(--accent-2-soft); color: #146648; }
   .badge-pending { background: var(--accent-3-soft); color: var(--accent-3); }
   .badge-invalid { background: var(--accent-4-soft); color: var(--accent-4); }
+  .badge-outlet { background: var(--accent-3-soft); color: var(--accent-3); }
 
   .laporan-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .laporan-table th { text-align: left; padding: 8px 10px; color: var(--muted); font-weight: 700; border-bottom: 1px solid var(--line); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -202,6 +203,9 @@
     .laporan-table { min-width: 560px; }
     .member-table { min-width: 480px; }
     .user-info span#user-name { display: none; }
+    .branch-row { flex-wrap: wrap; row-gap: 4px; }
+    .branch-bar-wrap { flex: 1 1 100%; order: 3; margin-top: 2px; }
+    .branch-name { flex: 1 1 auto; }
   }
   @media (max-width: 420px) {
     .kpi-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
@@ -685,21 +689,30 @@ function renderBranchCharts() {
         <span class="badge badge-blue">${c}</span>
       </div>`).join('');
 
-    // Chart Laporan per Branch
-    const bl={};
-    filteredLaporan.forEach(l=>{if(l.branch)bl[l.branch]=(bl[l.branch]||0)+1;});
+    // Chart Laporan per Branch (+ jumlah outlet unik per branch)
+    const bl={}, blOutlet={};
+    filteredLaporan.forEach(l=>{
+      if(!l.branch) return;
+      bl[l.branch]=(bl[l.branch]||0)+1;
+      const outlet=(l.nama_outlet||'').trim();
+      if(outlet){ if(!blOutlet[l.branch]) blOutlet[l.branch]=new Set(); blOutlet[l.branch].add(outlet); }
+    });
     const maxL=Math.max(...Object.values(bl),1);
-    document.getElementById('branch-laporan-list').innerHTML = !Object.keys(bl).length ? '<div class="empty">-</div>' : Object.entries(bl).sort((a,b)=>b[1]-a[1]).map(([b,c])=>`
+    document.getElementById('branch-laporan-list').innerHTML = !Object.keys(bl).length ? '<div class="empty">-</div>' : Object.entries(bl).sort((a,b)=>b[1]-a[1]).map(([b,c])=>{
+      const outletCount = blOutlet[b] ? blOutlet[b].size : 0;
+      return `
       <div class="branch-row clickable-branch" data-branch="${b}" onclick="toggleDashboardBranch('${b}')" title="Filter dashboard hanya untuk ${b}">
         <div class="branch-name">${b}</div>
         <div class="branch-bar-wrap"><div class="branch-bar" style="width:${Math.round(c/maxL*100)}%;background:#17a672"></div></div>
         <span class="badge badge-green">${c}</span>
-      </div>`).join('');
+        <span class="badge badge-outlet" title="Outlet unik">${outletCount} outlet</span>
+      </div>`;
+    }).join('');
 
   } else {
     // ============ MODE: BRANCH TERPILIH ============
     // Box 1: "Member per branch" berubah jadi "Member per MC" dari branch tsb
-    // Box 2: "Laporan per branch" berubah jadi "Total per orang" (pcs) dari branch tsb
+    // Box 2: "Laporan per branch" berubah jadi "Total per orang" (pcs + outlet unik) dari branch tsb
     titleEl.textContent = 'Member per MC';
     hintEl.innerHTML = backBtn;
     titleEl2.textContent = 'Total per orang';
@@ -719,19 +732,25 @@ function renderBranchCharts() {
         <span class="badge badge-blue">${c}</span>
       </div>`).join('');
 
-    // Total laporan per orang (pcs) dalam branch terpilih
-    const perOrang={};
+    // Total laporan per orang (pcs) + outlet unik per orang, dalam branch terpilih
+    const perOrang={}, orangOutlet={};
     filteredLaporan.filter(l=>l.branch===globalSelectedBranch).forEach(l=>{
       const nama = l.nama || l.whatsapp_id || 'Tanpa Nama';
       perOrang[nama]=(perOrang[nama]||0)+1;
+      const outlet=(l.nama_outlet||'').trim();
+      if(outlet){ if(!orangOutlet[nama]) orangOutlet[nama]=new Set(); orangOutlet[nama].add(outlet); }
     });
     const maxOrang=Math.max(...Object.values(perOrang),1);
-    document.getElementById('branch-laporan-list').innerHTML = !Object.keys(perOrang).length ? '<div class="empty">-</div>' : Object.entries(perOrang).sort((a,b)=>b[1]-a[1]).map(([nama,c])=>`
+    document.getElementById('branch-laporan-list').innerHTML = !Object.keys(perOrang).length ? '<div class="empty">-</div>' : Object.entries(perOrang).sort((a,b)=>b[1]-a[1]).map(([nama,c])=>{
+      const outletCount = orangOutlet[nama] ? orangOutlet[nama].size : 0;
+      return `
       <div class="branch-row" title="${nama}: ${c} pcs">
         <div class="branch-name">${nama}</div>
         <div class="branch-bar-wrap"><div class="branch-bar" style="width:${Math.round(c/maxOrang*100)}%;background:#17a672"></div></div>
         <span class="badge badge-green">${c} pcs</span>
-      </div>`).join('');
+        <span class="badge badge-outlet" title="Outlet unik">${outletCount} outlet</span>
+      </div>`;
+    }).join('');
   }
 }
 
