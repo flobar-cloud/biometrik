@@ -59,7 +59,7 @@
   .kpi-card.clickable.active .kpi-value { color: #fff; }
   .kpi-label { font-size: 11px; color: #898781; margin-bottom: 5px; }
   .kpi-value { font-size: 26px; font-weight: 500; line-height: 1; }
-  .kpi-sub { font-size: 11px; color: #898781; margin-top: 3px; }
+  .kpi-sub { font-size: 11px; color: #898781; margin-top: 3px; font-weight: 500; }
   .kpi-value.accent { color: #185fa5; }
   .kpi-value.success { color: #3b6d11; }
   .kpi-value.valid-color { color: #1baf7a; }
@@ -69,11 +69,19 @@
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   @media (max-width: 680px) { .grid-2 { grid-template-columns: 1fr; } }
   .card { background: #fff; border: 0.5px solid rgba(11,11,11,0.1); border-radius: 12px; padding: 14px 18px; }
-  .card-title { font-size: 13px; font-weight: 500; margin-bottom: 10px; }
-  .branch-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 0.5px solid rgba(11,11,11,0.06); }
-  .branch-row:last-child { border-bottom: none; }
+  .card-title { font-size: 13px; font-weight: 500; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+  
+  /* CSS Baru untuk Branch Interaktif */
+  .branch-row { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 8px; margin-bottom: 2px; transition: all 0.2s; border: 0.5px solid transparent; }
+  .clickable-branch { cursor: pointer; }
+  .clickable-branch:hover { background: #f0efec; border-color: rgba(11,11,11,0.05); }
+  .clickable-branch.active-branch { background: #eaf3de; border-color: #b8dcaa; }
+  .clickable-branch.active-branch .branch-name { font-weight: 600; color: #3b6d11; }
+  .clickable-branch.active-branch-blue { background: #e6f1fb; border-color: #bbd8f2; }
+  .clickable-branch.active-branch-blue .branch-name { font-weight: 600; color: #185fa5; }
+  
   .branch-name { flex: 1; font-size: 13px; }
-  .branch-bar-wrap { flex: 2; height: 5px; background: #f0efec; border-radius: 3px; overflow: hidden; }
+  .branch-bar-wrap { flex: 2; height: 5px; background: #e8e7e3; border-radius: 3px; overflow: hidden; }
   .branch-bar { height: 100%; border-radius: 3px; transition: width 0.4s; }
 
   .member-panel { background: #fff; border: 0.5px solid rgba(11,11,11,0.1); border-radius: 12px; margin-bottom: 20px; overflow: hidden; }
@@ -124,10 +132,8 @@
 </head>
 <body>
 
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
-<!-- Login Screen -->
 <div class="login-screen" id="login-screen">
   <div class="login-card">
     <div class="login-icon">
@@ -142,7 +148,6 @@
   </div>
 </div>
 
-<!-- App -->
 <div id="app" style="display:none">
   <div class="header">
     <div class="header-left">
@@ -199,13 +204,13 @@
   <div class="main">
     <div id="dashboard-content" style="display:none">
       <div class="kpi-row">
-        <div class="kpi-card"><div class="kpi-label">Total laporan</div><div class="kpi-value accent" id="kpi-total">0</div><div class="kpi-sub">periode ini</div></div>
-        <div class="kpi-card"><div class="kpi-label">Hari ini</div><div class="kpi-value success" id="kpi-today">0</div><div class="kpi-sub" id="kpi-today-date">-</div></div>
+        <div class="kpi-card"><div class="kpi-label">Total laporan</div><div class="kpi-value accent" id="kpi-total">0</div><div class="kpi-sub branch-label">Semua Branch</div></div>
+        <div class="kpi-card"><div class="kpi-label">Hari ini</div><div class="kpi-value success" id="kpi-today">0</div><div class="kpi-sub branch-label" id="kpi-today-date">Semua Branch</div></div>
         <div class="kpi-card clickable" id="kpi-member-card" onclick="toggleMemberPanel()">
-          <div class="kpi-label">Member aktif</div><div class="kpi-value" id="kpi-member">0</div><div class="kpi-sub">klik lihat list ▾</div>
+          <div class="kpi-label">Member aktif</div><div class="kpi-value" id="kpi-member">0</div><div class="kpi-sub branch-label" id="member-branch-label" style="text-decoration:underline">Semua Branch ▾</div>
         </div>
-        <div class="kpi-card"><div class="kpi-label">✅ Valid</div><div class="kpi-value valid-color" id="kpi-valid">0</div><div class="kpi-sub">dikonfirmasi</div></div>
-        <div class="kpi-card"><div class="kpi-label">⏳ Pending</div><div class="kpi-value pending-color" id="kpi-pending">0</div><div class="kpi-sub">belum dikonfirmasi</div></div>
+        <div class="kpi-card"><div class="kpi-label">✅ Valid</div><div class="kpi-value valid-color" id="kpi-valid">0</div><div class="kpi-sub branch-label">Semua Branch</div></div>
+        <div class="kpi-card"><div class="kpi-label">⏳ Pending</div><div class="kpi-value pending-color" id="kpi-pending">0</div><div class="kpi-sub branch-label">Semua Branch</div></div>
       </div>
 
       <div class="member-panel">
@@ -239,8 +244,14 @@
       </div>
 
       <div class="grid-2 section">
-        <div class="card"><div class="card-title">Member per branch</div><div id="branch-member-list"><div class="empty">-</div></div></div>
-        <div class="card"><div class="card-title">Laporan per branch</div><div id="branch-laporan-list"><div class="empty">-</div></div></div>
+        <div class="card">
+          <div class="card-title">Member per branch <span style="font-size:11px;color:#898781;font-weight:400">(Klik untuk filter)</span></div>
+          <div id="branch-member-list"><div class="empty">-</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Laporan per branch <span style="font-size:11px;color:#898781;font-weight:400">(Klik untuk filter)</span></div>
+          <div id="branch-laporan-list"><div class="empty">-</div></div>
+        </div>
       </div>
 
       <div class="card section">
@@ -279,9 +290,12 @@ const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
 // ============================================================
 
 let accessToken='', allLaporan=[], allMembers=[], validNumbers=new Set();
-let filteredLaporan=[], activeBranch='semua', activeMemberBranch='semua', memberPanelOpen=false;
+let filteredLaporan=[], memberPanelOpen=false;
 let dateFrom='', dateTo='';
-let sheetMeta={}; // cache row numbers
+let sheetMeta={}; 
+
+// Variabel Kontrol Filter Utama (Unified Dashboard Filter)
+let globalSelectedBranch = 'semua'; 
 
 // ============ AUTH ============
 function initGoogleSignIn() {
@@ -296,7 +310,6 @@ function initGoogleSignIn() {
 }
 
 function handleCredential(resp) {
-  // Gunakan OAuth token (implicit flow) untuk write access
   const client = google.accounts.oauth2.initTokenClient({
     client_id: OAUTH_CLIENT_ID,
     scope: SCOPES,
@@ -353,14 +366,11 @@ function updateRangeInfo() {
   document.getElementById('range-info').textContent = dateFrom==='2020-01-01'?'Semua data':`${fmt(dateFrom)} — ${fmt(dateTo)}`;
 }
 function parseRowDate(row) {
-  // Coba ambil dari kolom tanggal dulu, lalu parse laporan_at
   if (row.tanggal && row.tanggal.match(/^\d{4}-\d{2}-\d{2}$/)) return row.tanggal;
   const at = row.laporan_at || row.waktu || '';
   if (!at) return '';
-  // Format: "29/06/2026, 14.17.00"
   const m = at.match(/(\d{2})\/(\d{2})\/(\d{4})/);
   if (m) return `${m[3]}-${m[2]}-${m[1]}`;
-  // Format: "2026-06-29"
   const m2 = at.match(/^(\d{4}-\d{2}-\d{2})/);
   if (m2) return m2[1];
   return '';
@@ -415,7 +425,7 @@ function getStatus(row) {
 async function runValidation() {
   const pendingRows = allLaporan.filter(l => {
     const s = l.status_valid || '';
-    return s !== 'valid' && s !== 'not valid'; // kosong juga dianggap pending
+    return s !== 'valid' && s !== 'not valid';
   });
 
   if(validNumbers.size === 0) {
@@ -423,20 +433,13 @@ async function runValidation() {
     return;
   }
 
-  // Debug: cek berapa nomor yang match
   const toUpdate = pendingRows.filter(l => {
-    const no = String(l.no_biometrik||'').replace(/^'+/, '').trim(); // strip prefix apostrof
+    const no = String(l.no_biometrik||'').replace(/^'+/, '').trim();
     return no && validNumbers.has(no);
   });
 
-  console.log('Pending rows:', pendingRows.length);
-  console.log('Valid numbers loaded:', validNumbers.size);
-  console.log('Sample pending no:', pendingRows.slice(0,3).map(l=>l.no_biometrik));
-  console.log('Sample valid nos:', [...validNumbers].slice(0,3));
-  console.log('To update:', toUpdate.length);
-
   if(toUpdate.length === 0) {
-    showToast(`⚠️ ${pendingRows.length} pending, ${validNumbers.size} nomor valid dimuat, tapi tidak ada yang match. Cek format nomor di sheet Valid.`, 5000);
+    showToast(`⚠️ ${pendingRows.length} pending, ${validNumbers.size} nomor valid dimuat, tapi tidak ada yang match.`, 5000);
     return;
   }
 
@@ -446,8 +449,6 @@ async function runValidation() {
   bar.style.display = 'flex';
   document.getElementById('validate-bar-text').innerHTML = `Memvalidasi <strong>${toUpdate.length}</strong> nomor yang ditemukan di sheet Valid...`;
 
-  // Batch update ke Google Sheets — update kolom status_valid
-  // Perlu tahu index kolom status_valid terlebih dahulu
   const headerRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Laporan!1:1`,{
     headers:{'Authorization':'Bearer '+accessToken}
   });
@@ -461,10 +462,7 @@ async function runValidation() {
     return;
   }
 
-  // Konversi index ke kolom huruf (A=0, B=1, ...)
   const colLetter = String.fromCharCode(65 + statusColIdx);
-
-  // Buat batch update
   const batchData = toUpdate.map(row => ({
     range: `Laporan!${colLetter}${row._rowIdx}`,
     values: [['valid']]
@@ -486,7 +484,7 @@ async function runValidation() {
   showToast(`✅ ${updated} nomor berhasil divalidasi!`);
   bar.style.display = 'none';
   btn.disabled = false;
-  await loadData(); // reload data terbaru
+  await loadData();
 }
 
 function showToast(msg, dur=3000) {
@@ -495,61 +493,140 @@ function showToast(msg, dur=3000) {
   setTimeout(()=>t.classList.remove('show'), dur);
 }
 
-// ============ RENDER ============
+// ============ RENDER UTAMA & DASHBOARD FILTER ============
 function renderDashboard() {
-  filteredLaporan=allLaporan.filter(inRange);
-  const today=new Date().toISOString().split('T')[0];
-  const todayLap=allLaporan.filter(l=>parseRowDate(l)===today);
-  let tv=0,tp=0;
-  filteredLaporan.forEach(l=>{ const s=getStatus(l); if(s==='valid') tv++; else if(s==='pending') tp++; });
-  document.getElementById('kpi-total').textContent=filteredLaporan.length;
-  document.getElementById('kpi-today').textContent=todayLap.length;
-  document.getElementById('kpi-today-date').textContent=new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'short'});
-  document.getElementById('kpi-member').textContent=allMembers.length;
-  document.getElementById('kpi-valid').textContent=tv;
-  document.getElementById('kpi-pending').textContent=tp;
-  document.getElementById('member-panel-count').textContent=allMembers.length;
-  renderBranchCharts(); renderMemberFilterBar(); renderMemberList();
-  const branches=[...new Set(filteredLaporan.map(l=>l.branch).filter(Boolean))].sort();
-  activeBranch='semua';
-  document.getElementById('filter-row').innerHTML=`<button class="filter-btn active" onclick="filterBranch('semua')">Semua</button>`+branches.map(b=>`<button class="filter-btn" onclick="filterBranch('${b}')">${b}</button>`).join('');
+  // Hanya ambil data dalam range tanggal
+  filteredLaporan = allLaporan.filter(inRange);
+  
+  // 1. Render charts statis agar panjang baris merepresentasikan proporsi total untuk tanggal tersebut
+  renderBranchCharts();
+  
+  // 2. Terapkan refresh UI yang akan mengikat semua data dengan branch yang sedang aktif/dipilih
+  refreshUI();
+}
+
+function setDashboardBranch(branch) {
+  // Fungsi ini dipanggil dari Tombol. Langsung set ke target branch.
+  globalSelectedBranch = branch;
+  refreshUI();
+}
+
+function toggleDashboardBranch(branch) {
+  // Fungsi ini dipanggil saat klik Chart/Grafik Baris Branch. Jika yang diklik adalah yang sedang aktif, maka reset ke 'Semua'.
+  globalSelectedBranch = (globalSelectedBranch === branch) ? 'semua' : branch;
+  refreshUI();
+}
+
+function refreshUI() {
+  // Update Highlight pada Branch Chart
+  document.querySelectorAll('.clickable-branch').forEach(el => {
+    // Bedakan warna sorotan untuk member (biru) dan laporan (hijau)
+    const isMemberChart = el.closest('#branch-member-list') !== null;
+    if (el.dataset.branch === globalSelectedBranch) {
+        el.classList.add(isMemberChart ? 'active-branch-blue' : 'active-branch');
+    } else {
+        el.classList.remove('active-branch', 'active-branch-blue');
+    }
+  });
+
+  // Render & Update Data sesuai dengan filter 'globalSelectedBranch'
+  updateTopKPIs();
+  renderMemberFilterBar();
+  renderLaporanFilterBar();
+  renderMemberList();
   renderLaporanTable();
 }
 
+function updateTopKPIs() {
+  // Saring data berdasarkan branch spesifik
+  const lapData = (globalSelectedBranch === 'semua') ? filteredLaporan : filteredLaporan.filter(l => l.branch === globalSelectedBranch);
+  const memData = (globalSelectedBranch === 'semua') ? allMembers : allMembers.filter(m => m.branch === globalSelectedBranch);
+
+  const today = new Date().toISOString().split('T')[0];
+  const todayLap = lapData.filter(l => parseRowDate(l) === today);
+
+  let tv=0, tp=0;
+  lapData.forEach(l => { 
+    const s = getStatus(l); 
+    if(s === 'valid') tv++; 
+    else if(s === 'pending') tp++; 
+  });
+
+  document.getElementById('kpi-total').textContent = lapData.length;
+  document.getElementById('kpi-today').textContent = todayLap.length;
+  document.getElementById('kpi-member').textContent = memData.length;
+  document.getElementById('kpi-valid').textContent = tv;
+  document.getElementById('kpi-pending').textContent = tp;
+  document.getElementById('member-panel-count').textContent = memData.length;
+
+  // Ubah subtitle box atas (label) untuk menginformasikan user branch mana yang sedang dilihat
+  const labelText = (globalSelectedBranch === 'semua') ? 'Semua Branch' : `B: ${globalSelectedBranch}`;
+  document.querySelectorAll('.branch-label').forEach(el => {
+    if (el.id === 'member-branch-label') {
+        el.textContent = `${labelText} ▾`; // pertahankan panah drop-down
+    } else if (el.id === 'kpi-today-date') {
+        // Gabungkan tanggal dengan info branch
+        el.textContent = new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'short'}) + ` — ${labelText}`;
+    } else {
+        el.textContent = labelText;
+    }
+  });
+}
+
 function renderBranchCharts() {
+  // Chart Member
   const bm={};
   allMembers.forEach(m=>{if(m.branch)bm[m.branch]=(bm[m.branch]||0)+1;});
   const maxM=Math.max(...Object.values(bm),1);
-  document.getElementById('branch-member-list').innerHTML=!Object.keys(bm).length?'<div class="empty">-</div>':Object.entries(bm).sort((a,b)=>b[1]-a[1]).map(([b,c])=>`<div class="branch-row"><div class="branch-name">${b}</div><div class="branch-bar-wrap"><div class="branch-bar" style="width:${Math.round(c/maxM*100)}%;background:#2a78d6"></div></div><span class="badge" style="background:#e6f1fb;color:#185fa5">${c}</span></div>`).join('');
+  document.getElementById('branch-member-list').innerHTML = !Object.keys(bm).length ? '<div class="empty">-</div>' : Object.entries(bm).sort((a,b)=>b[1]-a[1]).map(([b,c])=>`
+    <div class="branch-row clickable-branch" data-branch="${b}" onclick="toggleDashboardBranch('${b}')" title="Filter dashboard hanya untuk ${b}">
+      <div class="branch-name">${b}</div>
+      <div class="branch-bar-wrap"><div class="branch-bar" style="width:${Math.round(c/maxM*100)}%;background:#2a78d6"></div></div>
+      <span class="badge" style="background:#e6f1fb;color:#185fa5">${c}</span>
+    </div>`).join('');
+
+  // Chart Laporan
   const bl={};
   filteredLaporan.forEach(l=>{if(l.branch)bl[l.branch]=(bl[l.branch]||0)+1;});
   const maxL=Math.max(...Object.values(bl),1);
-  document.getElementById('branch-laporan-list').innerHTML=!Object.keys(bl).length?'<div class="empty">-</div>':Object.entries(bl).sort((a,b)=>b[1]-a[1]).map(([b,c])=>`<div class="branch-row"><div class="branch-name">${b}</div><div class="branch-bar-wrap"><div class="branch-bar" style="width:${Math.round(c/maxL*100)}%;background:#1baf7a"></div></div><span class="badge" style="background:#eaf3de;color:#3b6d11">${c}</span></div>`).join('');
+  document.getElementById('branch-laporan-list').innerHTML = !Object.keys(bl).length ? '<div class="empty">-</div>' : Object.entries(bl).sort((a,b)=>b[1]-a[1]).map(([b,c])=>`
+    <div class="branch-row clickable-branch" data-branch="${b}" onclick="toggleDashboardBranch('${b}')" title="Filter dashboard hanya untuk ${b}">
+      <div class="branch-name">${b}</div>
+      <div class="branch-bar-wrap"><div class="branch-bar" style="width:${Math.round(c/maxL*100)}%;background:#1baf7a"></div></div>
+      <span class="badge" style="background:#eaf3de;color:#3b6d11">${c}</span>
+    </div>`).join('');
 }
 
 function renderMemberFilterBar() {
   const branches=[...new Set(allMembers.map(m=>m.branch).filter(Boolean))].sort();
-  document.getElementById('member-filter-bar').innerHTML=`<button class="filter-chip active" onclick="filterMemberBranch('semua')">Semua</button>`+branches.map(b=>`<button class="filter-chip" onclick="filterMemberBranch('${b}')">${b}</button>`).join('');
+  document.getElementById('member-filter-bar').innerHTML = 
+    `<button class="filter-chip ${globalSelectedBranch==='semua'?'active':''}" onclick="setDashboardBranch('semua')">Semua</button>` + 
+    branches.map(b=>`<button class="filter-chip ${globalSelectedBranch===b?'active':''}" onclick="setDashboardBranch('${b}')">${b}</button>`).join('');
 }
 
-function filterMemberBranch(branch) {
-  activeMemberBranch=branch;
-  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.toggle('active',c.textContent===(branch==='semua'?'Semua':branch)));
-  renderMemberList();
+function renderLaporanFilterBar() {
+  const branches=[...new Set(filteredLaporan.map(l=>l.branch).filter(Boolean))].sort();
+  document.getElementById('filter-row').innerHTML = 
+    `<button class="filter-btn ${globalSelectedBranch==='semua'?'active':''}" onclick="setDashboardBranch('semua')">Semua</button>` + 
+    branches.map(b=>`<button class="filter-btn ${globalSelectedBranch===b?'active':''}" onclick="setDashboardBranch('${b}')">${b}</button>`).join('');
 }
 
 function renderMemberList() {
+  // Selalu hitung statistik member dari total laporan (seluruh periode terpilih)
   const cnt={total:{},valid:{}};
   filteredLaporan.forEach(l=>{
     if(!l.whatsapp_id) return;
     cnt.total[l.whatsapp_id]=(cnt.total[l.whatsapp_id]||0)+1;
     if(getStatus(l)==='valid') cnt.valid[l.whatsapp_id]=(cnt.valid[l.whatsapp_id]||0)+1;
   });
-  let filtered=activeMemberBranch==='semua'?allMembers:allMembers.filter(m=>m.branch===activeMemberBranch);
+  
+  let filtered = (globalSelectedBranch==='semua') ? allMembers : allMembers.filter(m=>m.branch===globalSelectedBranch);
   filtered=[...filtered].sort((a,b)=>(cnt.total[b.whatsapp_id]||0)-(cnt.total[a.whatsapp_id]||0));
+  
   const tAll=filtered.reduce((s,m)=>s+(cnt.total[m.whatsapp_id]||0),0);
   const tValid=filtered.reduce((s,m)=>s+(cnt.valid[m.whatsapp_id]||0),0);
   const tPend=tAll-tValid;
+  
   document.getElementById('member-tbody').innerHTML=(!filtered.length?'<tr><td colspan="8" class="empty">-</td></tr>':
     filtered.map((m,i)=>{
       const total=cnt.total[m.whatsapp_id]||0, valid=cnt.valid[m.whatsapp_id]||0, pend=total-valid;
@@ -574,14 +651,8 @@ function toggleMemberPanel() {
   document.getElementById('kpi-member-card').classList.toggle('active',memberPanelOpen);
 }
 
-function filterBranch(branch) {
-  activeBranch=branch;
-  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.toggle('active',b.textContent===(branch==='semua'?'Semua':branch)));
-  renderLaporanTable();
-}
-
 function renderLaporanTable() {
-  const src=activeBranch==='semua'?filteredLaporan:filteredLaporan.filter(l=>l.branch===activeBranch);
+  const src = (globalSelectedBranch==='semua') ? filteredLaporan : filteredLaporan.filter(l=>l.branch===globalSelectedBranch);
   const recent=[...src].reverse().slice(0,50);
   document.getElementById('laporan-count').textContent=`(${src.length} total)`;
   document.getElementById('laporan-tbody').innerHTML=!recent.length?'<tr><td colspan="6" class="empty">-</td></tr>':recent.map(l=>{
