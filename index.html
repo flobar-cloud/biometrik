@@ -329,6 +329,35 @@
         </div>
       </div>
 
+      <div class="member-panel">
+        <div class="member-panel-header" onclick="toggleValidPanel()">
+          <div class="member-panel-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            Kelola Data Valid (No. Biometrik)
+          </div>
+          <svg class="chevron" id="valid-chevron" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="member-panel-body" id="valid-panel-body">
+          <div style="padding:16px 18px">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">
+              Tempel daftar nomor biometrik baru (satu per baris, atau dipisah koma), atau upload file .csv/.txt. Nomor yang sudah ada di sheet <strong>Valid</strong> maupun yang dobel dalam tempelan akan otomatis dibuang, lalu sisanya di-upload dan proses validasi langsung dijalankan.
+            </div>
+            <textarea id="valid-input" rows="4" placeholder="Contoh:&#10;081234567890&#10;081234567891&#10;081234567892" style="width:100%;border:1px solid var(--line);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;font-family:'JetBrains Mono',monospace;resize:vertical;outline:none;background:var(--bg)"></textarea>
+            <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">
+              <label class="btn btn-outline" style="cursor:pointer;margin:0">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Upload File
+                <input type="file" id="valid-file-input" accept=".csv,.txt" style="display:none" onchange="handleValidFileUpload(event)">
+              </label>
+              <button class="btn btn-green" id="btn-upload-valid" onclick="processValidUpload()">Upload &amp; Bersihkan Duplikat</button>
+              <span id="valid-upload-status" style="font-size:12px;color:var(--muted)"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="grid-2 section">
         <div class="card">
           <div class="card-title"><span id="branch-member-title">Member per branch</span><span class="card-title-hint" id="branch-member-hint">(Klik untuk filter)</span></div>
@@ -806,6 +835,98 @@ function toggleMemberPanel() {
   document.getElementById('member-panel-body').classList.toggle('open',memberPanelOpen);
   document.getElementById('member-chevron').classList.toggle('open',memberPanelOpen);
   document.getElementById('kpi-member-card').classList.toggle('active',memberPanelOpen);
+}
+
+// ============ KELOLA DATA VALID (Upload + Dedup + Auto-Validasi) ============
+let validPanelOpen=false;
+function toggleValidPanel() {
+  validPanelOpen=!validPanelOpen;
+  document.getElementById('valid-panel-body').classList.toggle('open',validPanelOpen);
+  document.getElementById('valid-chevron').classList.toggle('open',validPanelOpen);
+}
+
+function handleValidFileUpload(e) {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const ta = document.getElementById('valid-input');
+    ta.value = (ta.value.trim() ? ta.value.trim() + '\n' : '') + reader.result;
+    document.getElementById('valid-upload-status').textContent = `File "${file.name}" dimuat. Klik "Upload & Bersihkan Duplikat" untuk lanjut.`;
+  };
+  reader.onerror = () => { showToast('❌ Gagal membaca file.', 3000); };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function parseNumberList(text) {
+  // Pisahkan per baris/koma/titik-koma, buang tanda kutip leading (dari paste Excel/Sheets), whitespace, baris kosong
+  return text.split(/[\n,;]+/)
+    .map(s => s.replace(/^'+/, '').replace(/^"+|"+$/g,'').trim())
+    .filter(Boolean);
+}
+
+async function processValidUpload() {
+  const raw = document.getElementById('valid-input').value;
+  const newNumbers = parseNumberList(raw);
+  const statusEl = document.getElementById('valid-upload-status');
+  const btn = document.getElementById('btn-upload-valid');
+
+  if (!newNumbers.length) { showToast('⚠️ Belum ada nomor yang ditempel/upload.', 3000); return; }
+
+  btn.disabled = true;
+  statusEl.textContent = 'Memuat data Valid saat ini dari sheet...';
+
+  let existing = [];
+  try {
+    const valid = await fetchSheet('Valid');
+    existing = valid.map(r => String(r.no_biometrik || Object.values(r)[0] || '').replace(/^'+/, '').trim()).filter(Boolean);
+  } catch (e) {
+    showToast('❌ Gagal memuat data Valid: ' + e.message, 4000);
+    statusEl.textContent = ''; btn.disabled = false;
+    return;
+  }
+
+  const beforeCount = existing.length;
+  const finalList = [...new Set([...existing, ...newNumbers])];
+  const addedNew = finalList.length - beforeCount;
+  const duplicatesRemoved = newNumbers.length - addedNew;
+
+  statusEl.textContent = `Mengupload ${finalList.length} nomor ke sheet Valid...`;
+  try {
+    await writeValidSheet(finalList);
+  } catch (e) {
+    showToast('❌ Gagal upload ke sheet: ' + e.message, 4000);
+    statusEl.textContent = ''; btn.disabled = false;
+    return;
+  }
+
+  document.getElementById('valid-input').value = '';
+  showToast(`✅ ${addedNew} nomor baru ditambahkan, ${duplicatesRemoved} duplikat dibuang. Total sekarang ${finalList.length}.`, 5000);
+
+  statusEl.textContent = 'Memuat ulang data & menjalankan validasi...';
+  await loadData();
+  await runValidation();
+  statusEl.textContent = '';
+  btn.disabled = false;
+}
+
+async function writeValidSheet(numbers) {
+  // Bersihkan seluruh kolom A dulu supaya tidak ada sisa baris lama (misal data lama lebih panjang dari data baru)
+  const clearRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Valid!A:A:clear`, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + accessToken }
+  });
+  if (!clearRes.ok) throw new Error('HTTP ' + clearRes.status + ' saat membersihkan sheet Valid');
+
+  const values = [['no_biometrik'], ...numbers.map(n => [n])];
+  const endRow = values.length;
+  const updateRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Valid!A1:A${endRow}?valueInputOption=RAW`, {
+    method: 'PUT',
+    headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ values })
+  });
+  if (!updateRes.ok) throw new Error('HTTP ' + updateRes.status + ' saat menulis data baru ke sheet Valid');
 }
 
 function renderLaporanTable() {
